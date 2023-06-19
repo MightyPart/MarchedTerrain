@@ -52,3 +52,5 @@ for x = 0, size do
 	end
 end
 ```
+
+*DISCLAIMER: In its current form you will need to manually enable the `DoubleSided` property on each mesh in order for the mesh to appear correctly.*
