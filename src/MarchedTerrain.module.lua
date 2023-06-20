@@ -65,7 +65,7 @@ local function CreateVertex(mesh:DynamicMesh, pos:Vector3, color:Color3)
 	return vertexId
 end
 
--- Performs the marching cubes algorithm on a cube made from 8 vertices starting from a specified position.
+-- Performs the marching cubes algorithm on a cube made from 8 vertex positions starting from a specified position.
 local function March(startPos, positions, colors, vertices, dynamicMesh:DynamicMesh, triCount)
 
 	-- Gets the positions of the cube.
