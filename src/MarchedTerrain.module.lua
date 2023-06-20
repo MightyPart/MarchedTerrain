@@ -104,7 +104,7 @@ local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh
 		local positions2a, positions2b = currPositions[index2[1]+1], currPositions[index2[2]+1]
 		local positions3a, positions3b = currPositions[index3[1]+1], currPositions[index3[2]+1]
 
-		-- Gets the positions of the vertices.
+		-- Calculates the positions of the vertices.
 		local vert1Pos, vert2Pos, vert3Pos = 
 			Interpolate( positions1a,values[positions1a], positions1b,values[positions1b] ),
 			Interpolate( positions2a,values[positions2a], positions2b,values[positions2b] ),
@@ -117,7 +117,7 @@ local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh
 			vertices[vert3Pos] or CreateVertex( dynamicMesh, vert3Pos, ChooseTriColor(colors[positions3a], colors[positions3b]) )
 		dynamicMesh:AddTriangle(vert1, vert2, vert3)
 
-		-- Adds the vertices to the vertices table if they are not already in it.
+		-- Adds each vertex to the vertices table if they are not already in it.
 		if not vertices[vert1Pos] then vertices[vert1Pos] = vert1 end
 		if not vertices[vert2Pos] then vertices[vert2Pos] = vert2 end
 		if not vertices[vert3Pos] then vertices[vert3Pos] = vert3 end	
