@@ -6,6 +6,9 @@ A Roblox Marching Cubes Terrain System That Uses DynamicMesh
 
 ![image](https://github.com/MightyPart/MarchedTerrain/assets/66361859/cbe395a8-de87-45e8-b982-b2a1b483e5d6)
 ![image](https://github.com/MightyPart/MarchedTerrain/assets/66361859/3505eaf9-3793-465e-a15c-4ab3bbb258df)
+![image](https://github.com/MightyPart/MarchedTerrain/assets/66361859/ed5cbdb8-893d-43a9-b426-b4838efee2d5)
+
+
 
 </details>
 
