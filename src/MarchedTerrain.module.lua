@@ -104,7 +104,7 @@ local function March(startPos, positions, colors, vertices, dynamicMesh:DynamicM
 			Interpolate( positions2[1],positions[positions2[1]], positions2[2],positions[positions2[2]] ),
 			Interpolate( positions3[1],positions[positions3[1]], positions3[2],positions[positions3[2]] )
 
-		-- Gets (or creates) each vertex and creates a triangle using them.
+		-- Gets (or creates) each vertex and constructs a triangle with them.
 		local vert1, vert2, vert3 =
 			vertices[vert1Pos] or CreateVertex( dynamicMesh, vert1Pos, ChooseTriColor(colors[positions1[1]], colors[positions1[2]]) ),
 			vertices[vert2Pos] or CreateVertex( dynamicMesh, vert2Pos, ChooseTriColor(colors[positions2[1]], colors[positions2[2]]) ),
