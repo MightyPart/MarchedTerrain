@@ -2,26 +2,26 @@ local PartTerrain = {}
 
 --> Variables -------------------------------------------------------------------------------------------------
 -- Settings.
-local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 25, 25, 25, 5, 50, 0
+local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 20, 20 , 20, 5, 50, 0
 local COLOR_GRASS, COLOR_DIRT, COLOR_STONE = Color3.fromRGB(155, 191, 75), Color3.fromRGB(120, 72, 31), Color3.fromRGB(121, 120, 124)
+local MATERIAL = Enum.Material.Grass
+local COLLISION_FIDELITY = Enum.CollisionFidelity.DynamicPreciseConvexDecomposition
 
 -- Tables.
-local TRIANGULATION_TABLE = require(script.TriangulationTable)
+local LOOKUP_TABLE = require(script.LookupTable)
 local MIDPOINTS = {
 	{0,1}, {1,2}, {2,3}, {3,0},
 	{4,5}, {5,6}, {6,7}, {7,4},
 	{0,4}, {1,5}, {2,6}, {3,7}
 }
-local OFFSETS = {
+local OFFSET1, OFFSET2, OFFSET3, OFFSET4, OFFSET5, OFFSET6, OFFSET7 = 
 	Vector3.new(SCALE, 0, 0),
 	Vector3.new(SCALE, 0, SCALE),
 	Vector3.new(0, 0, SCALE),
-
 	Vector3.new(0, SCALE, 0),
 	Vector3.new(SCALE, SCALE, 0),
 	Vector3.new(SCALE, SCALE, SCALE),
-	Vector3.new(0, SCALE, SCALE),
-}
+	Vector3.new(0, SCALE, SCALE)
 ---------------------------------------------------------------------------------------------------------------
 
 
@@ -65,25 +65,31 @@ local function CreateVertex(mesh:DynamicMesh, pos:Vector3, color:Color3)
 	return vertexId
 end
 
+-- Figures out if a DynamicMesh is valid
+local function IsValidMesh(mesh:DynamicMesh)
+	local ok = pcall(function() mesh:GetTriangles() end)
+	return ok
+end
+
 -- Performs the marching cubes algorithm on a cube made from 8 vertex positions starting from a specified position.
-local function March(startPos, positions, colors, vertices, dynamicMesh:DynamicMesh, triCount)
+local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh, triCount)
 
 	-- Gets the positions of the cube.
 	local currPositions = {
-		startPos, startPos+OFFSETS[1], startPos+OFFSETS[2], startPos+OFFSETS[3],
-		startPos+OFFSETS[4], startPos+OFFSETS[5], startPos+OFFSETS[6], startPos+OFFSETS[7]
+		startPos, startPos+OFFSET1, startPos+OFFSET2, startPos+OFFSET3,
+		startPos+OFFSET4, startPos+OFFSET5, startPos+OFFSET6, startPos+OFFSET7
 	}
 
 	-- Calculates the TRIANGULATION_TABLE index for the cube.
-	local index = (positions[startPos] < ISOVALUE and 0 or 1)
-		+(positions[startPos+OFFSETS[1]] < ISOVALUE and 0 or 2)
-		+(positions[startPos+OFFSETS[2]] < ISOVALUE and 0 or 4)
-		+(positions[startPos+OFFSETS[3]] < ISOVALUE and 0 or 8)
-		+(positions[startPos+OFFSETS[4]] < ISOVALUE and 0 or 16)
-		+(positions[startPos+OFFSETS[5]] < ISOVALUE and 0 or 32)
-		+(positions[startPos+OFFSETS[6]] < ISOVALUE and 0 or 64)
-		+(positions[startPos+OFFSETS[7]] < ISOVALUE and 0 or 128)
-	index = TRIANGULATION_TABLE[index+1]
+	local index = (values[startPos] < ISOVALUE and 0 or 1)
+		+(values[startPos+OFFSET1] < ISOVALUE and 0 or 2)
+		+(values[startPos+OFFSET2] < ISOVALUE and 0 or 4)
+		+(values[startPos+OFFSET3] < ISOVALUE and 0 or 8)
+		+(values[startPos+OFFSET4] < ISOVALUE and 0 or 16)
+		+(values[startPos+OFFSET5] < ISOVALUE and 0 or 32)
+		+(values[startPos+OFFSET6] < ISOVALUE and 0 or 64)
+		+(values[startPos+OFFSET7] < ISOVALUE and 0 or 128)
+	index = LOOKUP_TABLE[index+1]
 	if index == 0 or index == 256 then return end
 
 	for count=1,#index/3 do
@@ -94,21 +100,21 @@ local function March(startPos, positions, colors, vertices, dynamicMesh:DynamicM
 		if index1 == nil or index2 == nil or index3 == nil then continue end
 
 		-- Gets The positions for the algorithm.
-		local positions1 = {currPositions[index1[1]+1],currPositions[index1[2]+1]}
-		local positions2 = {currPositions[index2[1]+1],currPositions[index2[2]+1]}
-		local positions3 = {currPositions[index3[1]+1],currPositions[index3[2]+1]}
+		local positions1a, positions1b = currPositions[index1[1]+1], currPositions[index1[2]+1]
+		local positions2a, positions2b = currPositions[index2[1]+1], currPositions[index2[2]+1]
+		local positions3a, positions3b = currPositions[index3[1]+1], currPositions[index3[2]+1]
 
 		-- Gets the positions of the vertices.
 		local vert1Pos, vert2Pos, vert3Pos = 
-			Interpolate( positions1[1],positions[positions1[1]], positions1[2],positions[positions1[2]] ),
-			Interpolate( positions2[1],positions[positions2[1]], positions2[2],positions[positions2[2]] ),
-			Interpolate( positions3[1],positions[positions3[1]], positions3[2],positions[positions3[2]] )
+			Interpolate( positions1a,values[positions1a], positions1b,values[positions1b] ),
+			Interpolate( positions2a,values[positions2a], positions2b,values[positions2b] ),
+			Interpolate( positions3a,values[positions3a], positions3b,values[positions3b] )
 
 		-- Gets (or creates) each vertex and constructs a triangle with them.
 		local vert1, vert2, vert3 =
-			vertices[vert1Pos] or CreateVertex( dynamicMesh, vert1Pos, ChooseTriColor(colors[positions1[1]], colors[positions1[2]]) ),
-			vertices[vert2Pos] or CreateVertex( dynamicMesh, vert2Pos, ChooseTriColor(colors[positions2[1]], colors[positions2[2]]) ),
-			vertices[vert3Pos] or CreateVertex( dynamicMesh, vert3Pos, ChooseTriColor(colors[positions3[1]], colors[positions3[2]]) )
+			vertices[vert1Pos] or CreateVertex( dynamicMesh, vert1Pos, ChooseTriColor(colors[positions1a], colors[positions1b]) ),
+			vertices[vert2Pos] or CreateVertex( dynamicMesh, vert2Pos, ChooseTriColor(colors[positions2a], colors[positions2b]) ),
+			vertices[vert3Pos] or CreateVertex( dynamicMesh, vert3Pos, ChooseTriColor(colors[positions3a], colors[positions3b]) )
 		dynamicMesh:AddTriangle(vert1, vert2, vert3)
 
 		-- Adds the vertices to the vertices table if they are not already in it.
@@ -122,17 +128,17 @@ end
 -- Creates a new chunk.
 return function(xOffset:number, yOffset:number, zOffset:number)
 	assert(yOffset <= 0, '"yOffset" can\'t be greater than 0!')
-	xOffset *= WIDTH*SCALE; yOffset *= DEPTH*SCALE; zOffset *= DEPTH*SCALE
-	
+	xOffset *= WIDTH*SCALE; yOffset *= HEIGHT*SCALE; zOffset *= DEPTH*SCALE
+
 	local dynamicMesh = Instance.new("DynamicMesh")
-	local positions, colors, vertices = {}, {}, {}
-	
+	local values, colors, vertices = {}, {}, {}
+
 	-- Creates data of vertex positions and colors. 
 	for x=xOffset,(WIDTH*SCALE)+xOffset,SCALE do
 		for z=zOffset,(DEPTH*SCALE)+zOffset,SCALE do
 			for y=yOffset,(HEIGHT*SCALE)+yOffset,SCALE do
 				local pos = Vector3.new(x,y,z)
-				
+
 				local value, color = FractalNoise(x, z, SEED,
 					8,  -- Octaves.
 					10, -- Lacunarity.
@@ -148,17 +154,17 @@ return function(xOffset:number, yOffset:number, zOffset:number)
 						0,  -- Persistence.
 						20  -- Scale.
 					)
-					
+
 					color = value <  -.6 and COLOR_STONE or value < ISOVALUE and COLOR_DIRT or color
 					value = caveValue > value and caveValue or value	
 				end
-				
-				positions[pos] = value
+
+				values[pos] = value
 				colors[pos] = color
 			end
 		end
 	end
-	
+
 	-- Marches through the vertices and constructs the mesh.
 	for x=xOffset,(WIDTH*SCALE)+xOffset,SCALE do
 		if x > ((WIDTH*SCALE)+xOffset)-SCALE then continue end
@@ -169,16 +175,19 @@ return function(xOffset:number, yOffset:number, zOffset:number)
 			for y=yOffset,(HEIGHT*SCALE)+yOffset,SCALE do
 				if y > ((HEIGHT*SCALE)+yOffset)-SCALE then continue end
 				local pos = Vector3.new(x,y,z)
-				March(pos, positions, colors, vertices, dynamicMesh)
+				March(pos, values, colors, vertices, dynamicMesh)
 			end
 		end
 	end
 	
+	if not IsValidMesh(dynamicMesh) then return end
+
 	-- loads the DynamicMesh's data into a MeshPart.
 	dynamicMesh.Parent = workspace
-	local meshPart = dynamicMesh:CreateMeshPartAsync(Enum.CollisionFidelity.DynamicPreciseConvexDecomposition)
+	local meshPart = dynamicMesh:CreateMeshPartAsync(COLLISION_FIDELITY)
 	meshPart.Name = `Terrain [{xOffset}, {yOffset}, {zOffset}]`
-	meshPart.Material = Enum.Material.Grass
+	meshPart.Material = MATERIAL
 	meshPart.Anchored = true
 	meshPart.Parent = workspace
+	dynamicMesh:Destroy()
 end
