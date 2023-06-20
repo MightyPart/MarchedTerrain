@@ -55,4 +55,4 @@ end
 
 - - -
 
-*DISCLAIMER: In its current form you will need to manually enable the `DoubleSided` property on each mesh in order for it to appear correctly.*
+*DISCLAIMER: In its current form you will need to manually enable the `DoubleSided` property on each mesh in order for them to appear correctly.*
