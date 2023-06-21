@@ -30,7 +30,6 @@ MarchedTerrain(0,-1,0)
 ```lua
 MarchedTerrain( xOffset: number, yOffset: number, zOffset: number )
 ```
-`yOffset` must be less than or equal to 0
 
 - - -
 
