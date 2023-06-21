@@ -9,7 +9,7 @@ local COLLISION_FIDELITY = Enum.CollisionFidelity.DynamicPreciseConvexDecomposit
 
 -- Tables.
 local LOOKUP_TABLE = require(script.LookupTable)
-local MIDPOINTS = {
+local MIDPOINT_PARENTS = {
 	{0,1}, {1,2}, {2,3}, {3,0},
 	{4,5}, {5,6}, {6,7}, {7,4},
 	{0,4}, {1,5}, {2,6}, {3,7}
@@ -28,11 +28,11 @@ local OFFSET1, OFFSET2, OFFSET3, OFFSET4, OFFSET5, OFFSET6, OFFSET7 =
 --> Helper Functions ------------------------------------------------------------------------------------------
 -- Chooses the color for a tri.
 local function ChooseTriColor(...)
-	local t = {...}
+	local colorTable = {...}
 
-	if table.find(t, COLOR_GRASS) then return COLOR_GRASS end
-	if table.find(t, COLOR_STONE) then return COLOR_STONE end
-	return COLOR_DIRT
+	if table.find(colorTable, COLOR_GRASS) then return COLOR_GRASS
+	elseif table.find(colorTable, COLOR_STONE) then return COLOR_STONE
+	else return COLOR_DIRT end
 end
 
 -- Layered noise.
@@ -71,16 +71,17 @@ local function IsValidMesh(mesh:DynamicMesh)
 	return ok
 end
 
--- Performs the marching cubes algorithm on a cube made from 8 vertex positions starting from a specified position.
-local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh, triCount)
+-- Performs the marching cubes algorithm on a cube of 8 positions starting from a specified position.
+local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh)
 
 	-- Gets the positions of the cube.
-	local currPositions = {
+	local cubePositions = {
 		startPos, startPos+OFFSET1, startPos+OFFSET2, startPos+OFFSET3,
 		startPos+OFFSET4, startPos+OFFSET5, startPos+OFFSET6, startPos+OFFSET7
 	}
 
-	-- Calculates the TRIANGULATION_TABLE index for the cube.
+	--[[ Calculates the index in the LOOKUP_TABLE for the cube. If index is
+	     0 or 256 then we return since those indexes represent empty space ]]
 	local index = (values[startPos] < ISOVALUE and 0 or 1)
 		+(values[startPos+OFFSET1] < ISOVALUE and 0 or 2)
 		+(values[startPos+OFFSET2] < ISOVALUE and 0 or 4)
@@ -89,38 +90,43 @@ local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh
 		+(values[startPos+OFFSET5] < ISOVALUE and 0 or 32)
 		+(values[startPos+OFFSET6] < ISOVALUE and 0 or 64)
 		+(values[startPos+OFFSET7] < ISOVALUE and 0 or 128)
-	index = LOOKUP_TABLE[index+1]
 	if index == 0 or index == 256 then return end
+	local lookupData = LOOKUP_TABLE[index+1]
 
-	for count=1,#index/3 do
-		-- gets the indexes for the algorithm.
-		local index1 = MIDPOINTS[index[(1-3)+(3*count)]+1]
-		local index2 = MIDPOINTS[index[(2-3)+(3*count)]+1]
-		local index3 = MIDPOINTS[index[(3-3)+(3*count)]+1]
-		if index1 == nil or index2 == nil or index3 == nil then continue end
+	--[[ lookupData is split up into chunks of 3 (this is because triangles have 3 vertices),
+		 therefore if we divide its length by 3 we get the amount of times we should iterate ]]
+	for count=1,#lookupData/3 do
+		
+		-- Get the indexes for each midpoint's parents.
+		local countTimes3 = count*3
+		local midpoint1ParentsIndexes = MIDPOINT_PARENTS[lookupData[-2+(countTimes3)]+1]
+		local midpoint2ParentsIndexes = MIDPOINT_PARENTS[lookupData[-1+(countTimes3)]+1]
+		local midpoint3ParentsIndexes = MIDPOINT_PARENTS[lookupData[countTimes3]+1]
+		if midpoint1ParentsIndexes == nil or midpoint2ParentsIndexes == nil or midpoint3ParentsIndexes == nil then continue end
 
-		-- Gets The positions for the algorithm.
-		local positions1a, positions1b = currPositions[index1[1]+1], currPositions[index1[2]+1]
-		local positions2a, positions2b = currPositions[index2[1]+1], currPositions[index2[2]+1]
-		local positions3a, positions3b = currPositions[index3[1]+1], currPositions[index3[2]+1]
+		-- Gets The positions of each midpoint's parents.
+		local positions1a, positions1b = cubePositions[midpoint1ParentsIndexes[1]+1], cubePositions[midpoint1ParentsIndexes[2]+1]
+		local positions2a, positions2b = cubePositions[midpoint2ParentsIndexes[1]+1], cubePositions[midpoint2ParentsIndexes[2]+1]
+		local positions3a, positions3b = cubePositions[midpoint3ParentsIndexes[1]+1], cubePositions[midpoint3ParentsIndexes[2]+1]
 
-		-- Calculates the positions of the vertices.
-		local vert1Pos, vert2Pos, vert3Pos = 
+		--[[ Calculates the positions of each midpoint by interpolating the
+		     positions of both of its parents using both of its parents values ]]
+		local midpoint1Pos, midpoint2Pos, midpoint3Pos = 
 			Interpolate( positions1a,values[positions1a], positions1b,values[positions1b] ),
 			Interpolate( positions2a,values[positions2a], positions2b,values[positions2b] ),
 			Interpolate( positions3a,values[positions3a], positions3b,values[positions3b] )
 
-		-- Gets (or creates) each vertex and constructs a triangle with them.
-		local vert1, vert2, vert3 =
-			vertices[vert1Pos] or CreateVertex( dynamicMesh, vert1Pos, ChooseTriColor(colors[positions1a], colors[positions1b]) ),
-			vertices[vert2Pos] or CreateVertex( dynamicMesh, vert2Pos, ChooseTriColor(colors[positions2a], colors[positions2b]) ),
-			vertices[vert3Pos] or CreateVertex( dynamicMesh, vert3Pos, ChooseTriColor(colors[positions3a], colors[positions3b]) )
-		dynamicMesh:AddTriangle(vert1, vert2, vert3)
+		-- Gets (or creates) a vertex at each midpoint and constructs a triangle with them.
+		local vertex1, vertex2, vertex3 =
+			vertices[midpoint1Pos] or CreateVertex( dynamicMesh, midpoint1Pos, ChooseTriColor(colors[positions1a], colors[positions1b]) ),
+			vertices[midpoint2Pos] or CreateVertex( dynamicMesh, midpoint2Pos, ChooseTriColor(colors[positions2a], colors[positions2b]) ),
+			vertices[midpoint3Pos] or CreateVertex( dynamicMesh, midpoint3Pos, ChooseTriColor(colors[positions3a], colors[positions3b]) )
+		dynamicMesh:AddTriangle(vertex1, vertex2, vertex3)
 
 		-- Adds each vertex to the vertices table if they are not already in it.
-		if not vertices[vert1Pos] then vertices[vert1Pos] = vert1 end
-		if not vertices[vert2Pos] then vertices[vert2Pos] = vert2 end
-		if not vertices[vert3Pos] then vertices[vert3Pos] = vert3 end	
+		if not vertices[midpoint1Pos] then vertices[midpoint1Pos] = vertex1 end
+		if not vertices[midpoint2Pos] then vertices[midpoint2Pos] = vertex2 end
+		if not vertices[midpoint3Pos] then vertices[midpoint3Pos] = vertex3 end	
 	end
 end
 ---------------------------------------------------------------------------------------------------------------
@@ -133,7 +139,7 @@ return function(xOffset:number, yOffset:number, zOffset:number)
 	local dynamicMesh = Instance.new("DynamicMesh")
 	local values, colors, vertices = {}, {}, {}
 
-	-- Creates data of vertex positions and colors. 
+	-- Creates data for positions and colors. 
 	for x=xOffset,(WIDTH*SCALE)+xOffset,SCALE do
 		for z=zOffset,(DEPTH*SCALE)+zOffset,SCALE do
 			for y=yOffset,(HEIGHT*SCALE)+yOffset,SCALE do
@@ -179,7 +185,7 @@ return function(xOffset:number, yOffset:number, zOffset:number)
 			end
 		end
 	end
-	
+
 	if not IsValidMesh(dynamicMesh) then return end
 
 	-- loads the DynamicMesh's data into a MeshPart.
