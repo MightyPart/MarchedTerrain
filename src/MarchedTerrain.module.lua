@@ -2,7 +2,7 @@ local PartTerrain = {}
 
 --> Variables -------------------------------------------------------------------------------------------------
 -- Settings.
-local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 150, 150 , 50, 1, 50, 0
+local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 20, 20 , 20, 5, 50, 0
 local COLOR_GRASS, COLOR_DIRT, COLOR_STONE = Color3.fromRGB(155, 191, 75), Color3.fromRGB(120, 72, 31), Color3.fromRGB(121, 120, 124)
 local MATERIAL = Enum.Material.Grass
 local COLLISION_FIDELITY = Enum.CollisionFidelity.DynamicPreciseConvexDecomposition
