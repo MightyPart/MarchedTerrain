@@ -64,7 +64,7 @@ local function CreateVertex(mesh:DynamicMesh, pos:Vector3, color:Color3)
 	return vertexId
 end
 
--- Figures out if a DynamicMesh is valid
+-- Figures out if a DynamicMesh is valid.
 local function IsValidMesh(mesh:DynamicMesh)
 	return pcall(function() mesh:GetTriangles() end)
 end
