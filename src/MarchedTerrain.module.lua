@@ -1,5 +1,3 @@
-local PartTerrain = {}
-
 --> Variables -------------------------------------------------------------------------------------------------
 -- Settings.
 local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 20, 20 , 20, 5, 50, 0
@@ -22,26 +20,28 @@ local OFFSET1, OFFSET2, OFFSET3, OFFSET4, OFFSET5, OFFSET6, OFFSET7 =
 	Vector3.new(SCALE, SCALE, 0),
 	Vector3.new(SCALE, SCALE, SCALE),
 	Vector3.new(0, SCALE, SCALE)
+
+local VALUES_AND_COLORS_LENGTH =
+	(((WIDTH*SCALE)/SCALE)+1)
+	* (((DEPTH*SCALE)/SCALE)+1)
+	* (((HEIGHT*SCALE)/SCALE)+1)
 ---------------------------------------------------------------------------------------------------------------
 
 
 --> Helper Functions ------------------------------------------------------------------------------------------
--- Chooses the color for a tri.
+-- Chooses the color for a vertex.
 local function ChooseVertexColor(...)
 	local colorTable = {...}
-
-	if table.find(colorTable, COLOR_GRASS) then return COLOR_GRASS
-	elseif table.find(colorTable, COLOR_STONE) then return COLOR_STONE
-	else return COLOR_DIRT end
+	return
+		table.find(colorTable, COLOR_GRASS) and COLOR_GRASS
+		or table.find(colorTable, COLOR_STONE) and COLOR_STONE
+		or COLOR_DIRT
 end
 
 -- Layered noise.
 local function FractalNoise(x, y, z, octaves, lacunarity, persistence, scale)
-	local value = 0 
-	local x1 = x 
-	local y1 = y
-	local z1 = z
-	local amplitude = 1
+	local x1, y1, z1 = x, y, z
+	local value, amplitude = 0, 1
 	for i = 1, octaves, 1 do
 		value += math.noise(x1 / scale, y1 / scale, z1 / scale) * amplitude
 		y1 *= lacunarity
@@ -49,7 +49,6 @@ local function FractalNoise(x, y, z, octaves, lacunarity, persistence, scale)
 		z1 *= lacunarity
 		amplitude *= persistence
 	end
-
 	return value
 end
 
@@ -67,8 +66,7 @@ end
 
 -- Figures out if a DynamicMesh is valid
 local function IsValidMesh(mesh:DynamicMesh)
-	local ok = pcall(function() mesh:GetTriangles() end)
-	return ok
+	return pcall(function() mesh:GetTriangles() end)
 end
 
 -- Performs the marching cubes algorithm on a cube of 8 positions starting from a specified position.
@@ -99,8 +97,8 @@ local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh
 
 		-- Get the indexes for each midpoint's parents.
 		local countTimes3 = count*3
-		local midpoint1ParentsIndexes = MIDPOINT_PARENTS[lookupData[-2+(countTimes3)]+1]
-		local midpoint2ParentsIndexes = MIDPOINT_PARENTS[lookupData[-1+(countTimes3)]+1]
+		local midpoint1ParentsIndexes = MIDPOINT_PARENTS[lookupData[-2+countTimes3]+1]
+		local midpoint2ParentsIndexes = MIDPOINT_PARENTS[lookupData[-1+countTimes3]+1]
 		local midpoint3ParentsIndexes = MIDPOINT_PARENTS[lookupData[countTimes3]+1]
 		if midpoint1ParentsIndexes == nil or midpoint2ParentsIndexes == nil or midpoint3ParentsIndexes == nil then continue end
 
@@ -137,9 +135,13 @@ return function(xOffset:number, yOffset:number, zOffset:number)
 	xOffset *= WIDTH*SCALE; yOffset *= HEIGHT*SCALE; zOffset *= DEPTH*SCALE
 
 	local dynamicMesh = Instance.new("DynamicMesh")
-	local values, colors, vertices = {}, {}, {}
+	local values, colors, vertices =
+		table.create(VALUES_AND_COLORS_LENGTH),
+		table.create(VALUES_AND_COLORS_LENGTH),
+		{}
 
-	-- Creates data for positions and colors. 
+	-- Creates data for positions and colors.
+	local promises = table.create(VALUES_AND_COLORS_LENGTH)
 	for x=xOffset,(WIDTH*SCALE)+xOffset,SCALE do
 		for z=zOffset,(DEPTH*SCALE)+zOffset,SCALE do
 			for y=yOffset,(HEIGHT*SCALE)+yOffset,SCALE do
