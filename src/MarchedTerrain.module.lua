@@ -2,7 +2,7 @@ local PartTerrain = {}
 
 --> Variables -------------------------------------------------------------------------------------------------
 -- Settings.
-local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 20, 20 , 20, 5, 50, 0
+local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 150, 150 , 50, 1, 50, 0
 local COLOR_GRASS, COLOR_DIRT, COLOR_STONE = Color3.fromRGB(155, 191, 75), Color3.fromRGB(120, 72, 31), Color3.fromRGB(121, 120, 124)
 local MATERIAL = Enum.Material.Grass
 local COLLISION_FIDELITY = Enum.CollisionFidelity.DynamicPreciseConvexDecomposition
@@ -27,7 +27,7 @@ local OFFSET1, OFFSET2, OFFSET3, OFFSET4, OFFSET5, OFFSET6, OFFSET7 =
 
 --> Helper Functions ------------------------------------------------------------------------------------------
 -- Chooses the color for a tri.
-local function ChooseTriColor(...)
+local function ChooseVertexColor(...)
 	local colorTable = {...}
 
 	if table.find(colorTable, COLOR_GRASS) then return COLOR_GRASS
@@ -96,7 +96,7 @@ local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh
 	--[[ lookupData is split up into chunks of 3 (this is because triangles have 3 vertices),
 		 therefore if we divide its length by 3 we get the amount of times we should iterate ]]
 	for count=1,#lookupData/3 do
-		
+
 		-- Get the indexes for each midpoint's parents.
 		local countTimes3 = count*3
 		local midpoint1ParentsIndexes = MIDPOINT_PARENTS[lookupData[-2+(countTimes3)]+1]
@@ -118,9 +118,9 @@ local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh
 
 		-- Gets (or creates) a vertex at each midpoint and constructs a triangle with them.
 		local vertex1, vertex2, vertex3 =
-			vertices[midpoint1Pos] or CreateVertex( dynamicMesh, midpoint1Pos, ChooseTriColor(colors[positions1a], colors[positions1b]) ),
-			vertices[midpoint2Pos] or CreateVertex( dynamicMesh, midpoint2Pos, ChooseTriColor(colors[positions2a], colors[positions2b]) ),
-			vertices[midpoint3Pos] or CreateVertex( dynamicMesh, midpoint3Pos, ChooseTriColor(colors[positions3a], colors[positions3b]) )
+			vertices[midpoint1Pos] or CreateVertex( dynamicMesh, midpoint1Pos, ChooseVertexColor(colors[positions1a], colors[positions1b]) ),
+			vertices[midpoint2Pos] or CreateVertex( dynamicMesh, midpoint2Pos, ChooseVertexColor(colors[positions2a], colors[positions2b]) ),
+			vertices[midpoint3Pos] or CreateVertex( dynamicMesh, midpoint3Pos, ChooseVertexColor(colors[positions3a], colors[positions3b]) )
 		dynamicMesh:AddTriangle(vertex1, vertex2, vertex3)
 
 		-- Adds each vertex to the vertices table if they are not already in it.
