@@ -119,7 +119,7 @@ local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh
 			vertices[midpoint1Pos] or CreateVertex( dynamicMesh, midpoint1Pos, ChooseVertexColor(colors[positions1a], colors[positions1b]) ),
 			vertices[midpoint2Pos] or CreateVertex( dynamicMesh, midpoint2Pos, ChooseVertexColor(colors[positions2a], colors[positions2b]) ),
 			vertices[midpoint3Pos] or CreateVertex( dynamicMesh, midpoint3Pos, ChooseVertexColor(colors[positions3a], colors[positions3b]) )
-		dynamicMesh:AddTriangle(vertex1, vertex2, vertex3)
+		dynamicMesh:AddTriangle(vertex3, vertex2, vertex1)
 
 		-- Adds each vertex to the vertices table if they are not already in it.
 		if not vertices[midpoint1Pos] then vertices[midpoint1Pos] = vertex1 end
