@@ -33,10 +33,8 @@ MarchedTerrain( xOffset: number, yOffset: number, zOffset: number )
 
 - - -
 
-# How To Get Access To The `DynamicMesh` Instance
 
-1. Switch to the `zIntegration` branch of Roblox Studio
-2. Enable the `SimEnableDynamicMesh` FFlag.
+NOTE: You need to enable the `SimEnableDynamicMeshPhase2` FFlag to get access to DynamicMesh.
 
 - - -
 
@@ -54,7 +52,3 @@ for x = 0, size do
 	end
 end
 ```
-
-- - -
-
-*DISCLAIMER: In its current form you will need to manually enable the `DoubleSided` property on each mesh in order for them to appear correctly.*
