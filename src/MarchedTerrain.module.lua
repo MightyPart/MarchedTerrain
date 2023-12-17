@@ -1,6 +1,6 @@
 --> Variables -------------------------------------------------------------------------------------------------
 -- Settings.
-local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 20, 20 , 20, 5, 50, 0
+local WIDTH, HEIGHT, DEPTH, SCALE, SEED, ISOVALUE = 20, 20, 20, 5, 50, 0
 local COLOR_GRASS, COLOR_DIRT, COLOR_STONE = Color3.fromRGB(155, 191, 75), Color3.fromRGB(120, 72, 31), Color3.fromRGB(121, 120, 124)
 local MATERIAL = Enum.Material.Grass
 local COLLISION_FIDELITY = Enum.CollisionFidelity.PreciseConvexDecomposition
@@ -58,19 +58,14 @@ local function Interpolate(vert1,val1, vert2,val2)
 end
 
 -- Creates a vertex.
-local function CreateVertex(mesh:DynamicMesh, pos:Vector3, color:Color3)
+local function CreateVertex(mesh:EditableMesh, pos:Vector3, color:Color3)
 	local vertexId = mesh:AddVertex(pos)
 	mesh:SetVertexColor(vertexId, color)
 	return vertexId
 end
 
--- Figures out if a DynamicMesh is valid.
-local function IsValidMesh(mesh:DynamicMesh)
-	return pcall(function() mesh:GetTriangles() end)
-end
-
 -- Performs the marching cubes algorithm on a cube of 8 positions starting from a specified position.
-local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh)
+local function March(startPos, values, colors, vertices, mesh:EditableMesh)
 
 	-- Gets the positions of the cube.
 	local cubePositions = {
@@ -116,10 +111,10 @@ local function March(startPos, values, colors, vertices, dynamicMesh:DynamicMesh
 
 		-- Gets (or creates) a vertex at each midpoint and constructs a triangle with them.
 		local vertex1, vertex2, vertex3 =
-			vertices[midpoint1Pos] or CreateVertex( dynamicMesh, midpoint1Pos, ChooseVertexColor(colors[positions1a], colors[positions1b]) ),
-			vertices[midpoint2Pos] or CreateVertex( dynamicMesh, midpoint2Pos, ChooseVertexColor(colors[positions2a], colors[positions2b]) ),
-			vertices[midpoint3Pos] or CreateVertex( dynamicMesh, midpoint3Pos, ChooseVertexColor(colors[positions3a], colors[positions3b]) )
-		dynamicMesh:AddTriangle(vertex3, vertex2, vertex1)
+			vertices[midpoint1Pos] or CreateVertex( mesh, midpoint1Pos, ChooseVertexColor(colors[positions1a], colors[positions1b]) ),
+			vertices[midpoint2Pos] or CreateVertex( mesh, midpoint2Pos, ChooseVertexColor(colors[positions2a], colors[positions2b]) ),
+			vertices[midpoint3Pos] or CreateVertex( mesh, midpoint3Pos, ChooseVertexColor(colors[positions3a], colors[positions3b]) )
+		mesh:AddTriangle(vertex3, vertex2, vertex1)
 
 		-- Adds each vertex to the vertices table if they are not already in it.
 		if not vertices[midpoint1Pos] then vertices[midpoint1Pos] = vertex1 end
@@ -131,17 +126,15 @@ end
 
 -- Creates a new chunk.
 return function(xOffset:number, yOffset:number, zOffset:number)
-	assert(yOffset <= 0, '"yOffset" can\'t be greater than 0!')
 	xOffset *= WIDTH*SCALE; yOffset *= HEIGHT*SCALE; zOffset *= DEPTH*SCALE
 
-	local dynamicMesh = Instance.new("DynamicMesh")
+	local editableMesh = Instance.new("EditableMesh")
 	local values, colors, vertices =
 		table.create(VALUES_AND_COLORS_LENGTH),
 		table.create(VALUES_AND_COLORS_LENGTH),
 		{}
 
 	-- Creates data for positions and colors.
-	local promises = table.create(VALUES_AND_COLORS_LENGTH)
 	for x=xOffset,(WIDTH*SCALE)+xOffset,SCALE do
 		for z=zOffset,(DEPTH*SCALE)+zOffset,SCALE do
 			for y=yOffset,(HEIGHT*SCALE)+yOffset,SCALE do
@@ -153,9 +146,9 @@ return function(xOffset:number, yOffset:number, zOffset:number)
 					0,  -- Persistence.
 					200 -- Scale.
 				) +(y*0.02)-ISOVALUE, COLOR_GRASS
-
+				
 				-- If below the surface.
-				if value < ISOVALUE then
+				--[[if value < ISOVALUE then
 					local caveValue = FractalNoise(x, y, z,
 						8,  -- Octaves.
 						10, -- Lacunarity.
@@ -165,7 +158,7 @@ return function(xOffset:number, yOffset:number, zOffset:number)
 
 					color = value <  -.6 and COLOR_STONE or value < ISOVALUE and COLOR_DIRT or color
 					value = caveValue > value and caveValue or value	
-				end
+				end]]
 
 				values[pos] = value
 				colors[pos] = color
@@ -183,19 +176,23 @@ return function(xOffset:number, yOffset:number, zOffset:number)
 			for y=yOffset,(HEIGHT*SCALE)+yOffset,SCALE do
 				if y > ((HEIGHT*SCALE)+yOffset)-SCALE then continue end
 				local pos = Vector3.new(x,y,z)
-				March(pos, values, colors, vertices, dynamicMesh)
+				March(pos, values, colors, vertices, editableMesh)
 			end
 		end
 	end
 
-	if not IsValidMesh(dynamicMesh) then return end
-
-	-- loads the DynamicMesh's data into a MeshPart.
-	dynamicMesh.Parent = workspace
-	local meshPart = dynamicMesh:CreateMeshPartAsync(COLLISION_FIDELITY)
+	-- loads the editableMesh's data into a MeshPart.
+	local meshPart = Instance.new("MeshPart")
+	meshPart.Size = Vector3.new(1,1,1)
 	meshPart.Name = `Terrain [{xOffset}, {yOffset}, {zOffset}]`
 	meshPart.Material = MATERIAL
 	meshPart.Anchored = true
 	meshPart.Parent = workspace
-	dynamicMesh:Destroy()
+	
+	editableMesh.Parent = meshPart
+	
+	print({
+		verts = #editableMesh:GetVertices(),
+		tris = #editableMesh:GetTriangles()
+	})
 end
